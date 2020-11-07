@@ -11,7 +11,7 @@ setup(
   author = 'Nathan Lee',
   author_email = 'lee.nathan.sh@gmail.com',
   install_requires = ['mplfinance', 'polygon-api-client', 'pdpipe', 'pandas', 'numpy', 'sklearn'],
-  packages = [ 'pdsando', 'pdsando.api', 'pdsando.ta.datafeeds', 'pdsando.ta.pipeline', 'pdsando.ta.visualizations' ],
+  packages = [ 'pdsando', 'pdsando.etl', 'pdsando.etl.pipeline', 'pdsando.etl.pipeline.cdc', 'pdsando.ta.datafeeds', 'pdsando.ta.pipeline', 'pdsando.ta.visualizations' ],
   license = 'Apache 2.0',
   long_description = 'Pandas Sando.'
 )

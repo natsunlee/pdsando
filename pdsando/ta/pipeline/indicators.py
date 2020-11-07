@@ -508,7 +508,7 @@ class BuySell(Indicator):
       sell_end = cur_time.replace(hour=int(self._sell_window[1].split(':')[0]), minute=int(self._sell_window[1].split(':')[1])) if self._sell_window[0] else cur_time.replace(hour=23, minute=59)
       
       in_buy_window = buy_start <= cur_time < buy_end
-      in_sell_window = sell_start <= cur_time < sell_end
+      #in_sell_window = sell_start <= cur_time < sell_end
       
       if src_val.iat[i] > 0 and not in_pos and in_buy_window:
         in_pos = True
