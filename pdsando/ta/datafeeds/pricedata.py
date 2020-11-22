@@ -2,27 +2,48 @@ from pandas import DataFrame
 
 class PriceData(DataFrame):
   def __init__(self, *args, **kwargs):
-    # Validate inputs
-    valid_timespans = ('second', 'minute', 'hour', 'day', 'month', 'year')
-    if kwargs['timespan'] not in valid_timespans:
-      raise ValueError(f'Timespan must be one of: {valid_timespans}')
-    if int(kwargs['multiplier']) <= 0:
-      raise ValueError(f'Multiplier must be a valid integer greater than 0')
-    
     # Init Pandas DataFrame
-    super().__init__(*args, **{ k:kwargs[k] for k in kwargs if k not in ['timespan', 'multiplier', 'source'] })
+    super().__init__(*args, **{ k:kwargs[k] for k in kwargs if k not in ['timespan', 'multiplier', 'source', 'category'] })
     
     # Store additional details specific to PriceData
-    self._timespan = kwargs['timespan']
-    self._multiplier = int(kwargs['multiplier'])
-    self._source = kwargs['source']
+    self.timespan = kwargs['timespan']
+    self.multiplier = kwargs['multiplier']
+    self.source = kwargs['source']
+    self.category = kwargs.get('category', 'stocks')
   
   @property
   def timespan(self): return self._timespan
+  @timespan.setter
+  def timespan(self, value):
+    valid_timespans = ('second', 'minute', 'hour', 'day', 'month', 'year')
+    if value not in valid_timespans:
+      raise ValueError(f'Timespan must be one of: {valid_timespans}')
+    self._timespan = value
+  
   @property
   def multiplier(self): return self._multiplier
+  @multiplier.setter
+  def multiplier(self, value):
+    if not isinstance(value, int):
+      raise TypeError(f'Multiplier must be an integer, not {type(value)}')
+    if int(value) <= 0:
+      raise ValueError(f'Multiplier must be a valid integer greater than 0')
+    self._multiplie = int(value)
+  
   @property
   def source(self): return self._source
+  @source.setter
+  def source(self, value):
+    self._source = value
+  
+  @property
+  def category(self): return self._category
+  @category.setter
+  def category(self, value):
+    valid_categories = ('stocks', 'forex', 'crypto')
+    if value not in valid_categories:
+      raise ValueError(f'Category must be one of: {valid_categories}')
+    self._category = value
   
   def copy(self, **kwargs):
     return PriceData(super().copy(**kwargs), timespan=self._timespan, multiplier=self._multiplier, source=self._source)
