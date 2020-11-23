@@ -465,12 +465,11 @@ class Backtest(Indicator):
 
 class BuySell(Indicator):
   
-  def __init__(self, tgt_col, src_col, close='Close', high='High', ts='Timestamp', trail_frac=None, sell_eod=False, buy_window=(None,None), sell_window=(None,None), **kwargs):
+  def __init__(self, tgt_col, src_col, close='Close', high='High', trail_frac=None, sell_eod=False, buy_window=(None,None), sell_window=(None,None), **kwargs):
     self._tgt_col = tgt_col
     self._src_col = src_col
     self._close = close
     self._high = high
-    self._ts = ts
     self._trail_frac = trail_frac
     self._sell_eod = sell_eod
     self._buy_window = buy_window
@@ -488,19 +487,17 @@ class BuySell(Indicator):
     src_val = df[self._src_col]
     ret_df[self._tgt_col] = np.nan
     
-    eod_ind = np.where(
-      ret_df[self._ts].isin(
-        ret_df.groupby([
-          ret_df[self._ts].dt.year,
-          ret_df[self._ts].dt.month,
-          ret_df[self._ts].dt.day
-        ])[self._ts].transform('max').values
-      ),
-      True, False
-    ) if self._sell_eod else []
+    ts_vals = ret_df.index.to_series()
+    eod_times = np.unique(ts_vals.groupby([
+      ts_vals.dt.year,
+      ts_vals.dt.month,
+      ts_vals.dt.day
+    ]).transform('max').values)
+    
+    eod_ind = np.where(ret_df.index.isin(eod_times), True, False) if self._sell_eod else []
     
     for i in range(len(ret_df)):
-      cur_time = ret_df[self._ts].iat[i]
+      cur_time = ts_vals.iat[i]
       buy_start = cur_time.replace(hour=int(self._buy_window[0].split(':')[0]), minute=int(self._buy_window[0].split(':')[1])) if self._buy_window[0] else cur_time.replace(hour=0, minute=0)
       buy_end = cur_time.replace(hour=int(self._buy_window[1].split(':')[0]), minute=int(self._buy_window[1].split(':')[1])) if self._buy_window[0] else cur_time.replace(hour=23, minute=59)
       

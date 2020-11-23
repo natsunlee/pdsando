@@ -5,7 +5,7 @@ from datetime import timedelta
 from polygon import RESTClient
 from pdsando.ta.pipeline.transforms import ToDateTime, FillMissingTimeFrames, SetIndex
 from pdsando.ta.pipeline.filters import RemoveNonMarketHours
-from pdsando.ta.datafeeds.pricedata import PriceData
+from pdsando.ta.datafeeds.tsdata import TimeSeriesData
 
 class Polygon:
   
@@ -19,7 +19,7 @@ class Polygon:
       'Close'          : { 'order': 3, 'orig': 'c'    , 'type': 'float64' },
       'High'           : { 'order': 4, 'orig': 'h'    , 'type': 'float64' },
       'Low'            : { 'order': 5, 'orig': 'l'    , 'type': 'float64' },
-      'Timestamp'      : { 'order': 6, 'orig': 't'    , 'type': 'datetime64[ns, US/Eastern]' },
+      'Timestamp'      : { 'order': 6, 'orig': 't'    , 'type': 'datetime64' },
       'NumItems'       : { 'order': 7, 'orig': 'n'    , 'type': 'int64' },
       'UnixTimestamp'  : { 'order': 8, 'orig': 'ux_ts', 'type': 'int64' }
     }
@@ -122,16 +122,16 @@ class Polygon:
     df = pd.concat([
       self._get_data(symbol.upper(), multiplier, s, e, tz, timespan, mode, cache)
       for s,e in chunks
-    ]).sort_values('UnixTimestamp').reset_index(drop=True)
+    ]).set_index('Timestamp')
     
     # Optionally remove all data not between 9:30 AM and 4:00 PM EST.
     if only_market_hours:
-      df = RemoveNonMarketHours('Timestamp').apply(df).reset_index(drop=True)
+      df = RemoveNonMarketHours().apply(df)
     
     # Optionally fill gaps in the data, if any.
     if fill_missing_timeframes and timespan == 'minute':
       start = '9:30' if only_market_hours else '0:00'
       end = '16:00' if only_market_hours else '24:00'
-      df = FillMissingTimeFrames(delta=multiplier, timestamp='Timestamp', from_time=start, to_time=end).apply(df).reset_index(drop=True)
+      df = FillMissingTimeFrames(delta=multiplier, from_time=start, to_time=end).apply(df)
     
-    return PriceData(df, timespan=timespan, multiplier=multiplier, source='polygon')
+    return TimeSeriesData(df, timespan=timespan, multiplier=multiplier, source='polygon')

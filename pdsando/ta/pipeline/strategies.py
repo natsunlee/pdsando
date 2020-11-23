@@ -59,7 +59,7 @@ class Strategy(PdPipelineStage):
 
 class Blender(Strategy):
   
-  def __init__(self, tgt_col, close='Close', high='High', ts='Timestamp', supertrend_multiplier=1.5, donchian_period=21, donchian_thresh=-7, trail_frac=0.01, sell_eod=False, debug=False, **kwargs):
+  def __init__(self, tgt_col, close='Close', high='High', supertrend_multiplier=1.5, donchian_period=21, donchian_thresh=-7, trail_frac=0.01, sell_eod=False, debug=False, **kwargs):
     self._tgt_col = tgt_col
     self._supertrend_multiplier = supertrend_multiplier
     self._donchian_period = donchian_period
@@ -67,7 +67,6 @@ class Blender(Strategy):
     self._debug = debug
     self._close = close
     self._high = high
-    self._ts = ts
     super().__init__(tgt_col=tgt_col, close=close, high=high, trail_frac=trail_frac, sell_eod=sell_eod, **kwargs)
   
   def _preprocess(self, df):
@@ -90,7 +89,7 @@ class Blender(Strategy):
     agg = pipeline.apply(agg_raw)
     
     # Join dataframes and filter down to possible setups
-    j = primary.join(agg.set_index(self._ts), on=self._ts, rsuffix='_agg', how='left')
+    j = primary.join(agg, rsuffix='_agg', how='left')
     
     j[self._tgt_col] = 0
     
@@ -106,4 +105,4 @@ class Blender(Strategy):
       self._tgt_col
     ] = 1
     
-    return df.join(j.set_index(self._ts)[[self._tgt_col]], on=self._ts, how='left').fillna(method='ffill')
+    return df.join(j, how='left').fillna(method='ffill')

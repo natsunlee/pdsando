@@ -43,11 +43,12 @@ class Shift(Transform):
 
 class ToDateTime(Transform):
   
-  def __init__(self, tgt_col, src_col, unit='ms', to_tz='utc', **kwargs):
+  def __init__(self, tgt_col, src_col, unit='ms', to_tz='utc', strip_tz=True, **kwargs):
     self._tgt_col = tgt_col
     self._src_col = src_col
     self._unit = unit
     self._to_tz = to_tz
+    self._strip_tz = strip_tz
     super().__init__()
   
   def _transform(self, df, verbose):
@@ -60,6 +61,9 @@ class ToDateTime(Transform):
     
     if self._to_tz != 'utc':
       ret_df[self._tgt_col] = ret_df[self._tgt_col].dt.tz_convert(self._to_tz)
+    
+    if self._strip_tz:
+      ret_df[self._tgt_col] = pd.DatetimeIndex(ret_df[self._tgt_col]).tz_localize(None)
     
     return ret_df
 
@@ -113,9 +117,8 @@ class MaxVal(Transform):
 
 class FillMissingTimeFrames(Transform):
   
-  def __init__(self, delta, timestamp='Timestamp', from_time='9:30', to_time='16:00', **kwargs):
+  def __init__(self, delta, from_time='9:30', to_time='16:00', **kwargs):
     self._delta = delta
-    self._timestamp = timestamp
     self._from_time = from_time
     self._to_time = to_time
     super().__init__()
@@ -149,7 +152,7 @@ class FillMissingTimeFrames(Transform):
       end_minute = int(self._to_time.split(':')[1])
     )
     
-    j = dt_ref.join(df.set_index(df[self._timestamp].dt.hour*60 + df[self._timestamp].dt.minute), how='left').sort_values(by=self._timestamp).reset_index(drop=True)
+    j = dt_ref.join(df.set_index(df.index.hour*60 + df.index.minute), how='left')
     j.fillna(method='ffill')
     
     return j[list(df.columns)]
@@ -157,13 +160,12 @@ class FillMissingTimeFrames(Transform):
 # TODO PERFORMANCE OPTIMIZATIONS
 class ThirtyToSixty(Transform):
   
-  def __init__(self, open='Open', high='High', low='Low', close='Cloe', volume='Volume', timestamp='Timestamp', prefilter_market_hours=True, **kwargs):
+  def __init__(self, open='Open', high='High', low='Low', close='Cloe', volume='Volume', prefilter_market_hours=True, **kwargs):
     self._open = open
     self._high = high
     self._low = low
     self._close = close
     self._volume = volume
-    self._timestamp = timestamp
     self._prefilter_market_hours = prefilter_market_hours
     super().__init__()
   
@@ -196,7 +198,7 @@ class ThirtyToSixty(Transform):
       self._open: 'first',
       self._timestamp: 'min',
       self._volume: 'sum'
-    }).sort_values(by=self._timestamp).reset_index(drop=True)
+    })
     
     return ret_df
 
@@ -241,14 +243,13 @@ class Slice(Transform):
 
 class IntradayGroups(Transform):
   
-  def __init__(self, group_size=2, open='Open', high='High', low='Low', close='Close', volume='Volume', timestamp='Timestamp', **kwargs):
+  def __init__(self, group_size=2, open='Open', high='High', low='Low', close='Close', volume='Volume', **kwargs):
     self._group_size = group_size
     self._open = open
     self._high = high
     self._low = low
     self._close = close
     self._volume = volume
-    self._timestamp = timestamp
     super().__init__()
   
   def _transform(self, df, verbose):
@@ -267,7 +268,7 @@ class IntradayGroups(Transform):
       self._open: 'first',
       self._timestamp: 'min',
       self._volume: 'sum'
-    }).sort_values(by=self._timestamp).reset_index(drop=True)
+    })
 
 class BuySellOld(Transform):
   

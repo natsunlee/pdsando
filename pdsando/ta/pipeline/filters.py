@@ -6,8 +6,7 @@ class RemoveNonMarketHours(PdPipelineStage):
   _EXC_MSG = 'RemoveNonMarketHours failure'
   _DESC = 'RemoveNonMarketHours'
   
-  def __init__(self, ts='Timestamp', **kwargs):
-    self._ts = ts
+  def __init__(self, **kwargs):
     super_kwargs = {
       'exmsg': RemoveNonMarketHours._EXC_MSG,
       'desc' : RemoveNonMarketHours._DESC
@@ -23,12 +22,12 @@ class RemoveNonMarketHours(PdPipelineStage):
       print('Removing non-market hours from dataset.')
     
     return df[
-      (df[self._ts].dt.hour * 60 + df[self._ts].dt.minute >= 570) # 9:30 AM EST
+      (df.index.hour * 60 + df.index.minute >= 570) # 9:30 AM EST
       #(df[self._ts].dt.hour * 60 + df[self._ts].dt.minute >= 540) # 9:00 AM EST
       &
-      (df[self._ts].dt.hour * 60 + df[self._ts].dt.minute < 960) # 4:00 PM EST
+      (df.index.hour * 60 + df.index.minute < 960) # 4:00 PM EST
       &
-      (df[self._ts].dt.weekday >= 0)
+      (df.index.weekday >= 0)
       &
-      (df[self._ts].dt.weekday <= 4)
+      (df.index.weekday <= 4)
     ]
