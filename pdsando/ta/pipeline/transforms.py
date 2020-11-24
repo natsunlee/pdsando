@@ -270,34 +270,6 @@ class IntradayGroups(Transform):
       self._volume: 'sum'
     })
 
-class BuySellOld(Transform):
-  
-  def __init__(self, tgt_col, src_col, short=False, **kwargs):
-    self._tgt_col = tgt_col
-    self._src_col = src_col
-    self._short = short
-    super().__init__()
-  
-  def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
-    if verbose:
-      print('Converting raw signals ({}) to BuySell timeline events ({})"'.format(self._src_col, self._tgt_col))
-    
-    in_pos = False if not self._short else True
-    ret_df[self._tgt_col] = np.nan
-    for i in range(len(ret_df)):
-      if ret_df[self._src_col].iat[i] > 0 and not in_pos:
-        ret_df[self._tgt_col].iat[i] = 1
-        in_pos = True
-      elif ret_df[self._src_col].iat[i] < 0 and in_pos:
-        ret_df[self._tgt_col].iat[i] = -1
-        in_pos = False
-      elif (not self._short and in_pos) or (self._short and not in_pos):
-        ret_df[self._tgt_col].iat[i] = 0
-    
-    return ret_df
-
 class Invert(Transform):
   
   def __init__(self, tgt_col, src_col=None, **kwargs):
