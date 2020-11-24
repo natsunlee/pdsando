@@ -1,6 +1,4 @@
-import pdpipe as pdp
 from pdpipe import PdPipelineStage
-import pandas_market_calendars as mcal
 
 class RemoveNonMarketHours(PdPipelineStage):
   _EXC_MSG = 'RemoveNonMarketHours failure'

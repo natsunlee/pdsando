@@ -1,11 +1,5 @@
-import pytz
-from pytz import timezone
 import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
 from pdpipe import PdPipelineStage
-from pdsando.ta.pipeline.filters import RemoveNonMarketHours
-import mplfinance as mpf
 
 class Transform(PdPipelineStage):
   
@@ -156,51 +150,6 @@ class FillMissingTimeFrames(Transform):
     j.fillna(method='ffill')
     
     return j[list(df.columns)]
-
-# TODO PERFORMANCE OPTIMIZATIONS
-class ThirtyToSixty(Transform):
-  
-  def __init__(self, open='Open', high='High', low='Low', close='Cloe', volume='Volume', prefilter_market_hours=True, **kwargs):
-    self._open = open
-    self._high = high
-    self._low = low
-    self._close = close
-    self._volume = volume
-    self._prefilter_market_hours = prefilter_market_hours
-    super().__init__()
-  
-  def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
-    if verbose:
-      print('Reducing 30 minute candles to 60')
-    
-    if self._prefilter_market_hours:
-      ret_df = RemoveNonMarketHours(self._timestamp).apply(ret_df)
-    
-    ret_df['_group'] = ret_df.apply(lambda row: '{} {}:{}'.format(
-      row[self._timestamp].date() if row[self._timestamp].hour != 0 else row[self._timestamp].date()-timedelta(days=1),
-      row[self._timestamp].hour if row[self._timestamp].minute != 0 else (row[self._timestamp] - timedelta(hours=1)).hour,
-      30
-    ), axis=1)
-    
-    cols_to_select = [
-      self._open, self._high,
-      self._low, self._close,
-      self._volume, self._timestamp,
-      '_group'
-    ]
-    
-    ret_df = ret_df[cols_to_select].groupby('_group').agg({
-      self._close: 'last',
-      self._high: 'max',
-      self._low: 'min',
-      self._open: 'first',
-      self._timestamp: 'min',
-      self._volume: 'sum'
-    })
-    
-    return ret_df
 
 class SetIndex(Transform):
   

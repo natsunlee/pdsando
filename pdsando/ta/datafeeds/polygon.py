@@ -3,7 +3,7 @@ import pdpipe as pdp
 import json
 from datetime import timedelta
 from polygon import RESTClient
-from pdsando.ta.pipeline.transforms import ToDateTime, FillMissingTimeFrames, SetIndex
+from pdsando.ta.pipeline.transforms import ToDateTime, FillMissingTimeFrames
 from pdsando.ta.pipeline.filters import RemoveNonMarketHours
 from pdsando.ta.datafeeds.tsdata import TimeSeriesData
 

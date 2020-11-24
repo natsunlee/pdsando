@@ -1,14 +1,11 @@
-import pandas as pd
 import numpy as np
 import pdpipe as pdp
 import mplfinance as mpf
-from datetime import datetime, timedelta
 from pdpipe import PdPipelineStage
 
 from pdsando.ta.datafeeds.polygon import Polygon
 from pdsando.ta.pipeline.indicators import SuperTrend, DonchianRibbon, EMA, RollingMax, RateOfChange, HL2, AverageDirectionalIndex, BuySell
-from pdsando.ta.pipeline.filters import RemoveNonMarketHours
-from pdsando.ta.pipeline.transforms import Shift, ResetIndex, ThirtyToSixty, ColKeep, IntradayGroups
+from pdsando.ta.pipeline.transforms import ResetIndex, IntradayGroups
 
 class Strategy(PdPipelineStage):
   
