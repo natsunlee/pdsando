@@ -66,7 +66,7 @@ class TimeSeriesData(pd.DataFrame):
   
   # Ensure DataFrame copy() returns another TimeSeriesData obj
   def copy(self, **kwargs):
-    return TimeSeriesData(super().copy(**kwargs), timespan=self._timespan, multiplier=self._multiplier, source=self._source, category=self._category)
+    return TimeSeriesData(super().copy(**kwargs), timespan=self.timespan, multiplier=self.multiplier, source=self._source, category=self._category)
   
   def supplement(self, sup_data):
     if not isinstance(sup_data, TimeSeriesData):
@@ -89,17 +89,17 @@ class TimeSeriesData(pd.DataFrame):
     if not isinstance(model_data, TimeSeriesData):
       raise AttributeError('Model data must be of type TimeSeriesData')
     
-    if model_data.timespan != self._timespan:
-      raise NotImplementedError('Currently cannot support matching different timespan (source: {} | target: {})'.format(self._timespan, model_data.timespan))
-    if model_data.multiplier == self._multiplier:
+    if model_data.timespan != self.timespan:
+      raise NotImplementedError('Currently cannot support matching different timespan (source: {} | target: {})'.format(self.timespan, model_data.timespan))
+    if model_data.multiplier == self.multiplier:
       return
     
-    if model_data.multiplier > self._multiplier:
+    if model_data.multiplier > self.multiplier:
       temp = self.join(model_data, rsuffix='_model', how='inner')
     else:
       temp = self.join(model_data, rsuffix='_model', how='right').fillna(method='ffill')
     
-    return TimeSeriesData(temp[list(self.columns)].copy(), timespan=self._timespan, multiplier=self._multiplier, source=self._source, category=self._category)
+    return TimeSeriesData(temp[list(self.columns)].copy(), timespan=self.timespan, multiplier=self.multiplier, source=self._source, category=self._category)
 
 class Resolution:
   
