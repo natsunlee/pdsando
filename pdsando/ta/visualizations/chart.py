@@ -14,10 +14,19 @@ class Chart:
     self._low = low
     self._close = close
     self._volume = volume
+    self._secondary_panel = 1
   
-  def add_indicator(self, *args):
-    for ind in args:
-      self._indicators.append(ind)
+  def add_indicator(self, ind):
+    if not isinstance(ind, Indicator) or isinstance(ind, Strategy):
+      raise TypeError('Must be of Indicator type')
+    
+    p = 0
+    if ind.secondary:
+      p = self._secondary_panel
+      self._secondary_panel += 1
+    
+    for x in ind._indicator(self._data, p):
+      self._indicators.append(x)
   
   def draw(self, session_breaks=True, figsize=(35,15), savefig=None):
     vlines = []
@@ -61,12 +70,18 @@ class Chart:
     # Generate indicator data
     apd = []
     for x in [ x for x in pipeline if isinstance(x, Indicator) or isinstance(x, Strategy) ]:
+      p = 0
+      if x.secondary:
+        p = self._secondary_panel
+        self._secondary_panel += 1
       try:
-        apd.extend(x._indicator(df))
+        apd.extend(x._indicator(df, p))
       except AttributeError as ae:
         print(ae)
+        if x.secondary: self._secondary_pane -= 1
       except NotImplementedError as nie:
         print(nie)
+        if x.secondary: self._secondary_pane -= 1
     
     # Draw plot
     if savefig:

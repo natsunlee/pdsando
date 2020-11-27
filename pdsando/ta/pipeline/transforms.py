@@ -219,6 +219,22 @@ class IntradayGroups(Transform):
       self._volume: 'sum'
     })
 
+class Sort(Transform):
+  
+  def __init__(self, sort_col=None, **kwargs):
+    self._sort_col = sort_col
+    super().__init__()
+  
+  def _transform(self, df, verbose):
+    ret_df = df.copy()
+    if verbose:
+      print('Sorting by value column {}'.format(self._sort_col or 'index'))
+    
+    if self._sort_col:
+      return ret_df.sort_values(by=self._sort_col, inplace=True)
+    else:
+      return ret_df.sort_index(inplace=True)
+
 class Invert(Transform):
   
   def __init__(self, tgt_col, src_col=None, **kwargs):

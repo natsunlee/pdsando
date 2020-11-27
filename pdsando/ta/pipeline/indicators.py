@@ -11,8 +11,11 @@ class Indicator(PdPipelineStage):
     self._color = kwargs.pop('color', 'black')
     self._width = kwargs.pop('width', 1)
     self._alpha = kwargs.pop('alpha', 1)
-    self._panel = kwargs.pop('panel', 0)
+    self._secondary = kwargs.pop('secondary', False)
     super().__init__(exmsg='Indicator failure', desc='Indicator')
+  
+  @property
+  def secondary(self): return self._secondary
   
   def _prec(self, df):
     return True
@@ -23,8 +26,8 @@ class Indicator(PdPipelineStage):
     else:
       return self._transform(df, False)
   
-  def _indicator(self, df):
-    return [mpf.make_addplot(self._get_or_apply(df)[self._tgt_col], panel=self._panel, color=self._color, type='line', width=self._width, alpha=self._alpha)]
+  def _indicator(self, df, panel=0):
+    return [mpf.make_addplot(self._get_or_apply(df)[self._tgt_col], panel=panel, color=self._color, type='line', width=self._width, alpha=self._alpha)]
 
 class SMA(Indicator):
   
@@ -224,7 +227,7 @@ class SuperTrend(Indicator):
     ret_df.drop(['_hl2', '_tr', '_atr', '_basic_lower_band', '_basic_upper_band', '_lower_band', '_upper_band', '_trend'], axis=1, inplace=True)
     return ret_df
   
-  def _indicator(self, df):
+  def _indicator(self, df, panel=0):
     orig = self._as_offset
     if not orig:
       self._as_offset = True
@@ -239,8 +242,8 @@ class SuperTrend(Indicator):
     ss_lower[:self._period] = np.nan
     
     return [
-      mpf.make_addplot(ss_upper, panel=0, color='g', type='line', width=3, alpha=0.5),
-      mpf.make_addplot(ss_lower, panel=0, color='r', type='line', width=3, alpha=0.5)
+      mpf.make_addplot(ss_upper, panel=panel, color='g', type='line', width=3, alpha=0.5),
+      mpf.make_addplot(ss_lower, panel=panel, color='r', type='line', width=3, alpha=0.5)
     ]
 
 class DonchianRibbon(Indicator):
@@ -252,11 +255,12 @@ class DonchianRibbon(Indicator):
     self._low = low
     self._close = close
     self._debug = debug
+    self._secondary = True
     
     if period < 10:
       raise ValueError('Period must be 10 or higher.')
     
-    super().__init__(tgt_col=tgt_col, **kwargs)
+    super().__init__(tgt_col=tgt_col, secondary=True, **kwargs)
   
   def _calc_trend(self, df, p, compare_to_main):
     ret_df = df
@@ -304,13 +308,13 @@ class DonchianRibbon(Indicator):
     
     return ret_df
   
-  def _indicator(self, df):
+  def _indicator(self, df, panel=0):
     tmp = self._get_or_apply(df)[self._tgt_col]
     pos = np.where(tmp > 0, tmp, 0)
     neg = np.where(tmp <= 0, tmp.abs(), 0)
     return [
-      mpf.make_addplot(pos, panel=1, color='g', type='bar', width=0.75, alpha=self._alpha),
-      mpf.make_addplot(neg, panel=1, color='r', type='bar', width=0.75, alpha=self._alpha)
+      mpf.make_addplot(pos, panel=panel, color='g', type='bar', width=0.75, alpha=self._alpha),
+      mpf.make_addplot(neg, panel=panel, color='r', type='bar', width=0.75, alpha=self._alpha)
     ]
 
 class Highest(Indicator):
@@ -412,14 +416,14 @@ class DeviationSpread(Indicator):
     
     return ret_df
   
-  def _indicator(self, df):
+  def _indicator(self, df, panel=0):
     tmp = self._get_or_apply(df)
     return [
-      mpf.make_addplot(tmp['{}_lowest'.format(self._tgt_col)] , panel=0, color='black' , type='line', width=self._width, alpha=0.4),
-      mpf.make_addplot(tmp['{}_low'.format(self._tgt_col)]    , panel=0, color='blue'  , type='line', width=self._width, alpha=0.4),
-      mpf.make_addplot(tmp['{}_mid'.format(self._tgt_col)]    , panel=0, color='purple', type='line', width=self._width, alpha=0.4),
-      mpf.make_addplot(tmp['{}_high'.format(self._tgt_col)]   , panel=0, color='blue'  , type='line', width=self._width, alpha=0.4),
-      mpf.make_addplot(tmp['{}_highest'.format(self._tgt_col)], panel=0, color='black' , type='line', width=self._width, alpha=0.4)
+      mpf.make_addplot(tmp['{}_lowest'.format(self._tgt_col)] , panel=panel, color='black' , type='line', width=self._width, alpha=0.4),
+      mpf.make_addplot(tmp['{}_low'.format(self._tgt_col)]    , panel=panel, color='blue'  , type='line', width=self._width, alpha=0.4),
+      mpf.make_addplot(tmp['{}_mid'.format(self._tgt_col)]    , panel=panel, color='purple', type='line', width=self._width, alpha=0.4),
+      mpf.make_addplot(tmp['{}_high'.format(self._tgt_col)]   , panel=panel, color='blue'  , type='line', width=self._width, alpha=0.4),
+      mpf.make_addplot(tmp['{}_highest'.format(self._tgt_col)], panel=panel, color='black' , type='line', width=self._width, alpha=0.4)
     ]
 
 class Backtest(Indicator):
@@ -430,7 +434,8 @@ class Backtest(Indicator):
     self._price_col = price_col
     self._start_amount = start_amount
     self._as_percent = as_percent
-    super().__init__(tgt_col=tgt_col, **kwargs)
+    self._secondary = True
+    super().__init__(tgt_col=tgt_col, secondary=True, **kwargs)
   
   def _transform(self, df, verbose):
     ret_df = df.copy()
@@ -460,8 +465,8 @@ class Backtest(Indicator):
     
     return ret_df
   
-  def _indicator(self, df):
-    return [mpf.make_addplot(self._get_or_apply(df)[self._tgt_col], panel=2, color=self._color, type='line', width=self._width, alpha=self._alpha)]
+  def _indicator(self, df, panel=0):
+    return [mpf.make_addplot(self._get_or_apply(df)[self._tgt_col], panel=panel, color=self._color, type='line', width=self._width, alpha=self._alpha)]
 
 class BuySell(Indicator):
   
@@ -521,15 +526,15 @@ class BuySell(Indicator):
     
     return ret_df
   
-  def _indicator(self, df):
+  def _indicator(self, df, panel=0):
     temp = self._get_or_apply(df).copy()
     temp['buy'] = np.where(temp[self._tgt_col] > 0, temp[self._close], np.nan)
     temp['sell'] = np.where(temp[self._tgt_col] < 0, temp[self._close], np.nan)
     
     ret = []
     if len(temp[temp['buy'].notna()]):
-      ret.append(mpf.make_addplot(temp['buy'], panel=self._panel, type='scatter', markersize=100, marker='^', width=self._width, alpha=self._alpha))
+      ret.append(mpf.make_addplot(temp['buy'], panel=panel, type='scatter', markersize=100, marker='^', width=self._width, alpha=self._alpha))
     if len(temp[temp['sell'].notna()]):
-      ret.append(mpf.make_addplot(temp['sell'], panel=self._panel, type='scatter', markersize=100, marker='v', width=self._width, alpha=self._alpha))
+      ret.append(mpf.make_addplot(temp['sell'], panel=panel, type='scatter', markersize=100, marker='v', width=self._width, alpha=self._alpha))
     
     return ret
