@@ -19,7 +19,7 @@ class Polygon:
       'Close'          : { 'order': 3, 'orig': 'c'    , 'type': 'float64' },
       'High'           : { 'order': 4, 'orig': 'h'    , 'type': 'float64' },
       'Low'            : { 'order': 5, 'orig': 'l'    , 'type': 'float64' },
-      'Timestamp'      : { 'order': 6, 'orig': 't'    , 'type': 'datetime64' },
+      'EstTimestamp'   : { 'order': 6, 'orig': 't'    , 'type': 'datetime64' },
       'NumItems'       : { 'order': 7, 'orig': 'n'    , 'type': 'int64' },
       'UnixTimestamp'  : { 'order': 8, 'orig': 'ux_ts', 'type': 'int64' }
     }
@@ -122,7 +122,7 @@ class Polygon:
     df = pd.concat([
       self._get_data(symbol.upper(), multiplier, s, e, tz, timespan, mode, cache)
       for s,e in chunks
-    ]).set_index('Timestamp')
+    ]).set_index('EstTimestamp')
     
     # Optionally remove all data not between 9:30 AM and 4:00 PM EST.
     if only_market_hours:
