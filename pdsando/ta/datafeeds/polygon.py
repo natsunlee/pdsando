@@ -20,7 +20,6 @@ class Polygon:
       'High'           : { 'order': 4, 'orig': 'h'    , 'type': 'float64' },
       'Low'            : { 'order': 5, 'orig': 'l'    , 'type': 'float64' },
       'EstTimestamp'   : { 'order': 6, 'orig': 't'    , 'type': 'datetime64' },
-      'NumItems'       : { 'order': 7, 'orig': 'n'    , 'type': 'int64' },
       'UnixTimestamp'  : { 'order': 8, 'orig': 'ux_ts', 'type': 'int64' }
     }
   
@@ -80,6 +79,10 @@ class Polygon:
       raw = resp.results
     
     ret_df = pd.DataFrame(raw).fillna(0)
+    
+    # Polygon response is inconsistent and stops returning 'n' after 2020-12-01.
+    ret_df.drop(columns=['n'], axis=1, errors='ignore', inplace=True)
+    
     ret_df['ux_ts'] = ret_df['t']
     ret_df = ToDateTime('t', 't', unit='ms', to_tz=tz).apply(ret_df)
     
