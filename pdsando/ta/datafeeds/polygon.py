@@ -49,7 +49,7 @@ class Polygon:
       import httplib2
       h = httplib2.Http(cache)
       _, content = h.request(
-          'https://api.polygon.io/v2/aggs/ticker/{}/range/{}/{}/{}/{}?sort=asc&apiKey={}'.format(
+          'https://api.polygon.io/v2/aggs/ticker/{}/range/{}/{}/{}/{}?limit=50000&sort=asc&apiKey={}'.format(
             symbol,
             multiplier,
             timespan,
@@ -63,7 +63,7 @@ class Polygon:
     elif mode == 'urllib':
       import urllib.request
       r = urllib.request.urlopen(
-        'https://api.polygon.io/v2/aggs/ticker/{}/range/{}/{}/{}/{}?sort=asc&apiKey={}'.format(
+        'https://api.polygon.io/v2/aggs/ticker/{}/range/{}/{}/{}/{}?limit=50000&sort=asc&apiKey={}'.format(
           symbol,
           multiplier,
           timespan,
@@ -75,8 +75,13 @@ class Polygon:
       raw = json.loads(r.read().decode('utf-8'))['results']
     else:
       client = RESTClient(self._key)
-      resp = client.stocks_equities_aggregates(ticker=symbol.upper(), multiplier=multiplier, timespan=timespan, from_=from_date.strftime('%Y-%m-%d'), to=to_date.strftime('%Y-%m-%d'))
+      resp = client.stocks_equities_aggregates(ticker=symbol.upper(), multiplier=multiplier, timespan=timespan, from_=from_date.strftime('%Y-%m-%d'), to=to_date.strftime('%Y-%m-%d'), limit=50000)
+      if not resp.status == 'OK':
+        raise RuntimeError("Polygon API responded with status {} for date range: {} to {}".format(resp.status, from_date.strftime('%Y-%m-%d'), to_date.strftime('%Y-%m-%d')))
       raw = resp.results
+      
+      # No valid results
+      if not raw: return None
     
     ret_df = pd.DataFrame(raw).fillna(0)
     
@@ -97,24 +102,20 @@ class Polygon:
   def ohlc(self, symbol, multiplier, from_date, to_date, tz='US/Eastern', timespan='minute', mode='default', cache=None, only_market_hours=False, fill_missing_timeframes=False):
     # Prepare download batches.
     chunks = []
-    if timespan == 'minute' and multiplier == 1:
-      interval = timedelta(days=10)
-    else:
-      interval = timedelta(days=14)
-    temp_start = to_date - interval
-    temp_end = to_date
-    
     if timespan == 'minute':
-      end_offset = 1
+      interval = timedelta(days=34) # 34.7222 days in 50,000 minutes
+      temp_start = to_date - interval
+      temp_end = to_date
+      
+      # Download chunks until full timespan is received.
+      while from_date < temp_start:
+        chunks.append((temp_start, temp_end))
+        temp_end = temp_start - timedelta(days=1)
+        temp_start = temp_end - interval
+      chunks.append((from_date, temp_end))
     else:
-      end_offset = 0
-    
-    # Download chunks until full timespan is received.
-    while from_date < temp_start:
-      chunks.append((temp_start, temp_end))
-      temp_end = temp_start - timedelta(days=end_offset)
-      temp_start = temp_end - interval
-    chunks.append((from_date, temp_end))
+      # 50,000 days/weeks/etc. exceed the oldest historical data
+      chunks.append((from_date, to_date))
     
     # Debug
     if self._debug:
