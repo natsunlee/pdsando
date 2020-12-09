@@ -1,6 +1,6 @@
-from pdpipe import PdPipelineStage
+from pdsando.core.wrappers import PipelineStage
 
-class RemoveNonMarketHours(PdPipelineStage):
+class RemoveNonMarketHours(PipelineStage):
   _EXC_MSG = 'RemoveNonMarketHours failure'
   _DESC = 'RemoveNonMarketHours'
   

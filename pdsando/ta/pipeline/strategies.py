@@ -1,13 +1,12 @@
 import numpy as np
 import pdpipe as pdp
 import mplfinance as mpf
-from pdpipe import PdPipelineStage
+from pdsando.core.wrappers import PipelineStage, Pipeline
 
-from pdsando.ta.datafeeds.polygon import Polygon
 from pdsando.ta.pipeline.indicators import SuperTrend, DonchianRibbon, EMA, RollingMax, RateOfChange, HL2, AverageDirectionalIndex, BuySell
 from pdsando.ta.pipeline.transforms import ResetIndex, IntradayGroups
 
-class Strategy(PdPipelineStage):
+class Strategy(PipelineStage):
   
   def __init__(self, **kwargs):
     self._tgt_col = kwargs.pop('tgt_col')
@@ -68,7 +67,7 @@ class Blender(Strategy):
   
   def _preprocess(self, df):
     # Define processing pipeline
-    pipeline = pdp.PdPipeline([
+    pipeline = Pipeline([
       pdp.ColDrop(columns=['VolumeWeighted', 'NumItems', 's'], errors='ignore'),
       ResetIndex(),
       SuperTrend('supertrend', multiplier=self._supertrend_multiplier, as_offset=True),

@@ -2,9 +2,9 @@ import pdpipe as pdp
 import numpy as np
 import pandas as pd
 import mplfinance as mpf
-from pdpipe import PdPipelineStage
+from pdsando.core.wrappers import PipelineStage, Pipeline
 
-class Indicator(PdPipelineStage):
+class Indicator(PipelineStage):
   
   def __init__(self, **kwargs):
     self._tgt_col = kwargs.pop('tgt_col')
@@ -38,11 +38,10 @@ class SMA(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
     if verbose:
       print('Determining Simple Moving Average for: "{}"'.format(self._src_col))
-    ret_df[self._tgt_col] = ret_df[self._src_col].rolling(self._period).mean()
-    return ret_df
+    df[self._tgt_col] = df[self._src_col].rolling(self._period).mean()
+    return df
 
 class EMA(Indicator):
   
@@ -53,11 +52,10 @@ class EMA(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
     if verbose:
       print('Determining Exponential Moving Average (period={}) for: "{}"'.format(self._period, self._tgt_col))
-    ret_df[self._tgt_col] = ret_df[self._src_col].ewm(span=self._period, min_periods=self._period, adjust=False, ignore_na=False).mean()
-    return ret_df
+    df[self._tgt_col] = df[self._src_col].ewm(span=self._period, min_periods=self._period, adjust=False, ignore_na=False).mean()
+    return df
 
 class SMMA(Indicator):
   
@@ -68,11 +66,10 @@ class SMMA(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
     if verbose:
       print('Determining Smoothed Moving Average (period={}) for: "{}"'.format(self._period, self._tgt_col))
-    ret_df[self._tgt_col] = ret_df[self._src_col].ewm(alpha=1.0/self._period).mean().values.flatten()
-    return ret_df
+    df[self._tgt_col] = df[self._src_col].ewm(alpha=1.0/self._period).mean().values.flatten()
+    return df
 
 class RollingMax(Indicator):
   
@@ -83,11 +80,10 @@ class RollingMax(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
     if verbose:
       print('Determining Rolling Maximum (period={}) for: "{}"'.format(self._period, self._src_col))
-    ret_df[self._tgt_col] = ret_df[self._src_col].rolling(self._period).max()
-    return ret_df
+    df[self._tgt_col] = df[self._src_col].rolling(self._period).max()
+    return df
 
 class RateOfChange(Indicator):
   
@@ -98,16 +94,14 @@ class RateOfChange(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Determining Rate of Change (period={}) for: "{}"'.format(self._period, self._src_col))
     
-    ret_df['_historical_val'] = ret_df[self._src_col].shift(self._period)
-    ret_df[self._tgt_col] = ( (ret_df[self._src_col] - ret_df['_historical_val']) / ret_df['_historical_val'] ) * 100
-    ret_df.drop('_historical_val', axis=1, inplace=True)
+    df['_historical_val'] = df[self._src_col].shift(self._period)
+    df[self._tgt_col] = ( (df[self._src_col] - df['_historical_val']) / df['_historical_val'] ) * 100
+    df.drop('_historical_val', axis=1, inplace=True)
     
-    return ret_df
+    return df
 
 # max(high - low, abs(high - close[1]), abs(low - close[1]))
 class TrueRange(Indicator):
@@ -120,20 +114,18 @@ class TrueRange(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    ret_df['_last_close_'] = ret_df[self._close].shift(1)
-    
     if verbose:
       print('Calculating True Range col "{}"'.format(self._tgt_col))
     
-    ret_df['_tr_comp_a_'] = ret_df[self._high] - ret_df[self._low]
-    ret_df['_tr_comp_b_'] = ret_df[self._high] - ret_df['_last_close_']
-    ret_df['_tr_comp_c_'] = ret_df[self._low] - ret_df['_last_close_']
-    ret_df[self._tgt_col] = ret_df[['_tr_comp_a_', '_tr_comp_b_', '_tr_comp_c_']].max(axis=1)
+    df['_last_close_'] = df[self._close].shift(1)
+    df['_tr_comp_a_'] = df[self._high] - df[self._low]
+    df['_tr_comp_b_'] = df[self._high] - df['_last_close_']
+    df['_tr_comp_c_'] = df[self._low] - df['_last_close_']
+    df[self._tgt_col] = df[['_tr_comp_a_', '_tr_comp_b_', '_tr_comp_c_']].max(axis=1)
     
-    ret_df.drop(['_last_close_', '_tr_comp_a_', '_tr_comp_b_', '_tr_comp_c_'], axis=1, inplace=True)
+    df.drop(['_last_close_', '_tr_comp_a_', '_tr_comp_b_', '_tr_comp_c_'], axis=1, inplace=True)
     
-    return ret_df
+    return df
 
 class ATR(Indicator):
   
@@ -146,16 +138,15 @@ class ATR(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
     if verbose:
       print('Calculating True Range col "{}"'.format(self._tgt_col))
     
-    pipeline = pdp.PdPipeline([
+    pipeline = Pipeline([
       TrueRange(self._tgt_col, self._high, self._low, self._close),
       SMMA(self._tgt_col, self._tgt_col, self._period)
     ])
     
-    return pipeline.apply(ret_df)
+    return pipeline.apply(df)
 
 class HL2(Indicator):
   
@@ -166,13 +157,11 @@ class HL2(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Calculating average between High and Low')
     
-    ret_df[self._tgt_col] = (ret_df[self._high] + ret_df[self._low]) /2
-    return ret_df
+    df[self._tgt_col] = (df[self._high] + df[self._low]) /2
+    return df
 
 class SuperTrend(Indicator):
   
@@ -187,45 +176,41 @@ class SuperTrend(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Calculating final supertrend bands')
     
-    ret_df = pdp.PdPipeline([
+    df = Pipeline([
       HL2('_hl2', high=self._high, low=self._low),
       TrueRange('_tr', high=self._high, low=self._low, close=self._close),
       EMA('_atr', '_tr', period=self._period)
-    ]).apply(ret_df)
+    ]).apply(df)
     
-    ret_df['_basic_lower_band'] = ret_df['_hl2']-(self._multiplier * ret_df['_atr'])
-    ret_df['_basic_upper_band'] = ret_df['_hl2']+(self._multiplier * ret_df['_atr'])
+    df['_basic_lower_band'] = df['_hl2']-(self._multiplier * df['_atr'])
+    df['_basic_upper_band'] = df['_hl2']+(self._multiplier * df['_atr'])
     
-    ret_df['_lower_band'] = 0.0
-    ret_df['_upper_band'] = 0.0
+    df['_lower_band'] = 0.0
+    df['_upper_band'] = 0.0
     
-    for i in range(self._period, len(ret_df)):
-      ret_df['_lower_band'].iat[i] = max(ret_df['_basic_lower_band'].iat[i], ret_df['_lower_band'].iat[i-1]) if ret_df[self._close].iat[i-1] > ret_df['_lower_band'].iat[i-1] else ret_df['_basic_lower_band'].iat[i]
-      ret_df['_upper_band'].iat[i] = min(ret_df['_basic_upper_band'].iat[i], ret_df['_upper_band'].iat[i-1]) if ret_df[self._close].iat[i-1] < ret_df['_upper_band'].iat[i-1] else ret_df['_basic_upper_band'].iat[i]
+    for i in range(self._period, len(df)):
+      df['_lower_band'].iat[i] = max(df['_basic_lower_band'].iat[i], df['_lower_band'].iat[i-1]) if df[self._close].iat[i-1] > df['_lower_band'].iat[i-1] else df['_basic_lower_band'].iat[i]
+      df['_upper_band'].iat[i] = min(df['_basic_upper_band'].iat[i], df['_upper_band'].iat[i-1]) if df[self._close].iat[i-1] < df['_upper_band'].iat[i-1] else df['_basic_upper_band'].iat[i]
     
-    ret_df['_trend'] = 1
-    for i in range(self._period, len(ret_df)):
-      if (ret_df['_trend'].iat[i-1] < 0 and ret_df[self._close].iat[i] > ret_df['_upper_band'].iat[i-1]):
-        ret_df['_trend'].iat[i] = 1
-      elif (ret_df['_trend'].iat[i-1] > 0 and ret_df[self._close].iat[i] < ret_df['_lower_band'].iat[i-1]):
-        ret_df['_trend'].iat[i] = -1
+    df['_trend'] = 1
+    for i in range(self._period, len(df)):
+      if (df['_trend'].iat[i-1] < 0 and df[self._close].iat[i] > df['_upper_band'].iat[i-1]):
+        df['_trend'].iat[i] = 1
+      elif (df['_trend'].iat[i-1] > 0 and df[self._close].iat[i] < df['_lower_band'].iat[i-1]):
+        df['_trend'].iat[i] = -1
       else:
-        ret_df['_trend'].iat[i] = ret_df['_trend'].iat[i-1]
+        df['_trend'].iat[i] = df['_trend'].iat[i-1]
     
     if self._as_offset:
-      #ret_df[self._tgt_col] = ret_df.apply(lambda row: row['_hl2']-row['_lower_band'] if row['_trend'] > 0 else row['_hl2']-row['_upper_band'], axis=1)
-      ret_df[self._tgt_col] = np.where(ret_df['_trend'] > 0, ret_df['_hl2']-ret_df['_lower_band'], ret_df['_hl2']-ret_df['_upper_band'])
+      df[self._tgt_col] = np.where(df['_trend'] > 0, df['_hl2']-df['_lower_band'], df['_hl2']-df['_upper_band'])
     else:
-      #ret_df[self._tgt_col] = ret_df.apply(lambda row: row['_lower_band'] if row['_trend'] > 0 else row['_upper_band'], axis=1)
-      ret_df[self._tgt_col] = np.where(ret_df['_trend'] > 0, ret_df['_lower_band'], ret_df['_upper_band'])
+      df[self._tgt_col] = np.where(df['_trend'] > 0, df['_lower_band'], df['_upper_band'])
     
-    ret_df.drop(['_hl2', '_tr', '_atr', '_basic_lower_band', '_basic_upper_band', '_lower_band', '_upper_band', '_trend'], axis=1, inplace=True)
-    return ret_df
+    df.drop(['_hl2', '_tr', '_atr', '_basic_lower_band', '_basic_upper_band', '_lower_band', '_upper_band', '_trend'], axis=1, inplace=True)
+    return df
   
   def _indicator(self, df, panel=0):
     orig = self._as_offset
@@ -263,50 +248,46 @@ class DonchianRibbon(Indicator):
     super().__init__(tgt_col=tgt_col, secondary=True, **kwargs)
   
   def _calc_trend(self, df, p, compare_to_main):
-    ret_df = df
+    df['_hh'] = df[self._high].rolling(p).max().shift(1)
+    df['_ll'] = df[self._low].rolling(p).min().shift(1)
     
-    ret_df['_hh'] = ret_df[self._high].rolling(p).max().shift(1)
-    ret_df['_ll'] = ret_df[self._low].rolling(p).min().shift(1)
+    df['_trend'] = np.nan
+    df.loc[df[self._close] > df['_hh'], '_trend'] = 1
+    df.loc[df[self._close] < df['_ll'], '_trend'] = -1
+    df['_trend'] = df['_trend'].fillna(method='ffill')
     
-    ret_df['_trend'] = np.nan
-    ret_df.loc[ret_df[self._close] > ret_df['_hh'], '_trend'] = 1
-    ret_df.loc[ret_df[self._close] < ret_df['_ll'], '_trend'] = -1
-    ret_df['_trend'] = ret_df['_trend'].fillna(method='ffill')
-    
-    ret_df['_final_trend'] = 0
+    df['_final_trend'] = 0
     if compare_to_main:
-      ret_df.loc[(ret_df['_trend'] > 0) & (ret_df['_main'] > 0), '_final_trend'] = 1
-      ret_df.loc[(ret_df['_trend'] < 0) & (ret_df['_main'] < 0), '_final_trend'] = -1
+      df.loc[(df['_trend'] > 0) & (df['_main'] > 0), '_final_trend'] = 1
+      df.loc[(df['_trend'] < 0) & (df['_main'] < 0), '_final_trend'] = -1
     else:
-      ret_df['_final_trend'] = ret_df['_trend']
+      df['_final_trend'] = df['_trend']
     
-    trend = ret_df['_final_trend']
-    ret_df.drop(['_hh', '_ll', '_trend', '_final_trend'], inplace=True, axis=1)
+    trend = df['_final_trend']
+    df.drop(['_hh', '_ll', '_trend', '_final_trend'], inplace=True, axis=1)
     return trend
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Calculating Donchian channels for a period of: {}'.format(self._period))
     
-    ret_df['_main'] = self._calc_trend(ret_df, self._period, False)
-    ret_df['_t1'] = self._calc_trend(ret_df, self._period-1, True)
-    ret_df['_t2'] = self._calc_trend(ret_df, self._period-2, True)
-    ret_df['_t3'] = self._calc_trend(ret_df, self._period-3, True)
-    ret_df['_t4'] = self._calc_trend(ret_df, self._period-4, True)
-    ret_df['_t5'] = self._calc_trend(ret_df, self._period-5, True)
-    ret_df['_t6'] = self._calc_trend(ret_df, self._period-6, True)
-    ret_df['_t7'] = self._calc_trend(ret_df, self._period-7, True)
-    ret_df['_t8'] = self._calc_trend(ret_df, self._period-8, True)
-    ret_df['_t9'] = self._calc_trend(ret_df, self._period-9, True)
+    df['_main'] = self._calc_trend(df, self._period, False)
+    df['_t1'] = self._calc_trend(df, self._period-1, True)
+    df['_t2'] = self._calc_trend(df, self._period-2, True)
+    df['_t3'] = self._calc_trend(df, self._period-3, True)
+    df['_t4'] = self._calc_trend(df, self._period-4, True)
+    df['_t5'] = self._calc_trend(df, self._period-5, True)
+    df['_t6'] = self._calc_trend(df, self._period-6, True)
+    df['_t7'] = self._calc_trend(df, self._period-7, True)
+    df['_t8'] = self._calc_trend(df, self._period-8, True)
+    df['_t9'] = self._calc_trend(df, self._period-9, True)
     
-    ret_df[self._tgt_col] = ret_df[['_main', '_t1', '_t2', '_t3', '_t4', '_t5', '_t6', '_t7', '_t8', '_t9']].sum(axis=1).astype('int')
+    df[self._tgt_col] = df[['_main', '_t1', '_t2', '_t3', '_t4', '_t5', '_t6', '_t7', '_t8', '_t9']].sum(axis=1).astype('int')
     
     if not self._debug:
-      ret_df.drop(['_main', '_t1', '_t2', '_t3', '_t4', '_t5', '_t6', '_t7', '_t8', '_t9'], inplace=True, axis=1)
+      df.drop(['_main', '_t1', '_t2', '_t3', '_t4', '_t5', '_t6', '_t7', '_t8', '_t9'], inplace=True, axis=1)
     
-    return ret_df
+    return df
   
   def _indicator(self, df, panel=0):
     tmp = self._get_or_apply(df)[self._tgt_col]
@@ -327,13 +308,11 @@ class Highest(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Calculating highest value for column "{}" over period {}'.format(self._src_col, self._period))
     
-    ret_df[self._tgt_col] = ret_df[self._src_col].rolling(self._period).max().shift(self._shift)
-    return ret_df
+    df[self._tgt_col] = df[self._src_col].rolling(self._period).max().shift(self._shift)
+    return df
 
 class Lowest(Indicator):
   
@@ -345,13 +324,11 @@ class Lowest(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Calculating lowest value for column "{}" over period {}'.format(self._src_col, self._period))
     
-    ret_df[self._tgt_col] = ret_df[self._src_col].rolling(self._period).min().shift(self._shift)
-    return ret_df
+    df[self._tgt_col] = df[self._src_col].rolling(self._period).min().shift(self._shift)
+    return df
 
 class AverageDirectionalIndex(Indicator):
   
@@ -364,13 +341,12 @@ class AverageDirectionalIndex(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    temp = pd.DataFrame(ret_df[[self._close, self._high, self._low]].copy())
+    temp = pd.DataFrame(df[[self._close, self._high, self._low]].copy())
     
     if verbose:
       print('Calculating average directional index over period {}'.format(self._period))
     
-    pipeline = pdp.PdPipeline([
+    pipeline = Pipeline([
       pdp.ColByFrameFunc('up', lambda df: df[self._high] - df[self._high].shift(1)),
       pdp.ColByFrameFunc('down', lambda df: df[self._low].shift(1) - df[self._low]),
       pdp.ColByFrameFunc('pdm', lambda df: np.where(df['up'] > df['down'], df['up'], 0)),
@@ -387,9 +363,9 @@ class AverageDirectionalIndex(Indicator):
       pdp.ColByFrameFunc('adx', lambda df: (100 * df['pre_adx']))
     ])
     
-    ret_df[self._tgt_col] = pipeline.apply(temp)['adx']
+    df[self._tgt_col] = pipeline.apply(temp)['adx']
     
-    return ret_df
+    return df
 
 class DeviationSpread(Indicator):
   
@@ -400,21 +376,19 @@ class DeviationSpread(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Determining Standard Deviation for: "{}"'.format(self._src_col))
     
-    stddev = ret_df[self._src_col].rolling(self._period).std()
-    median = ret_df[self._src_col].rolling(self._period).median()
+    stddev = df[self._src_col].rolling(self._period).std()
+    median = df[self._src_col].rolling(self._period).median()
     
-    ret_df['{}_lowest'.format(self._tgt_col)]  = median - 2*stddev
-    ret_df['{}_low'.format(self._tgt_col)]     = median - stddev
-    ret_df['{}_mid'.format(self._tgt_col)]     = median
-    ret_df['{}_high'.format(self._tgt_col)]    = median + stddev
-    ret_df['{}_highest'.format(self._tgt_col)] = median + 2*stddev
+    df['{}_lowest'.format(self._tgt_col)]  = median - 2*stddev
+    df['{}_low'.format(self._tgt_col)]     = median - stddev
+    df['{}_mid'.format(self._tgt_col)]     = median
+    df['{}_high'.format(self._tgt_col)]    = median + stddev
+    df['{}_highest'.format(self._tgt_col)] = median + 2*stddev
     
-    return ret_df
+    return df
   
   def _indicator(self, df, panel=0):
     tmp = self._get_or_apply(df)
@@ -438,8 +412,6 @@ class Backtest(Indicator):
     super().__init__(tgt_col=tgt_col, secondary=True, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Backtesting via Buy/Sell signals from {} with starting amount {}'.format(self._signal_col, self._start_amount))
     
@@ -447,23 +419,23 @@ class Backtest(Indicator):
     free_val = cur_val
     shares_held = 0
     
-    ret_df[self._tgt_col] = 0.0
-    for i in range(len(ret_df)):
-      if ret_df[self._signal_col].iat[i] == 1.0:
-        ret_df[self._tgt_col].iat[i] = free_val
-        shares_held = free_val // ret_df[self._price_col].iat[i]
-        free_val -= (shares_held * ret_df[self._price_col].iat[i])
-      elif ret_df[self._signal_col].iat[i] == -1.0:
-        free_val += (shares_held * ret_df[self._price_col].iat[i])
+    df[self._tgt_col] = 0.0
+    for i in range(len(df)):
+      if df[self._signal_col].iat[i] == 1.0:
+        df[self._tgt_col].iat[i] = free_val
+        shares_held = free_val // df[self._price_col].iat[i]
+        free_val -= (shares_held * df[self._price_col].iat[i])
+      elif df[self._signal_col].iat[i] == -1.0:
+        free_val += (shares_held * df[self._price_col].iat[i])
         shares_held = 0
-        ret_df[self._tgt_col].iat[i] = free_val
+        df[self._tgt_col].iat[i] = free_val
       else:
-        ret_df[self._tgt_col].iat[i] = free_val + (shares_held * ret_df[self._price_col].iat[i])
+        df[self._tgt_col].iat[i] = free_val + (shares_held * df[self._price_col].iat[i])
     
     if self._as_percent:
-      ret_df[self._tgt_col] = (ret_df[self._tgt_col] / self._start_amount) * 100 - 100.00
+      df[self._tgt_col] = (df[self._tgt_col] / self._start_amount) * 100 - 100.00
     
-    return ret_df
+    return df
   
   def _indicator(self, df, panel=0):
     return [mpf.make_addplot(self._get_or_apply(df)[self._tgt_col], panel=panel, color=self._color, type='line', width=self._width, alpha=self._alpha)]
@@ -482,26 +454,24 @@ class BuySell(Indicator):
     super().__init__(tgt_col=tgt_col, **kwargs)
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Converting raw signals ({}) to BuySell timeline events ({}) with trailing stop ({})"'.format(self._src_col, self._tgt_col, self._trail_frac))
     
     in_pos = False
     cur_stop_price = -1.0
     src_val = df[self._src_col]
-    ret_df[self._tgt_col] = np.nan
+    df[self._tgt_col] = np.nan
     
-    ts_vals = ret_df.index.to_series()
+    ts_vals = df.index.to_series()
     eod_times = np.unique(ts_vals.groupby([
       ts_vals.dt.year,
       ts_vals.dt.month,
       ts_vals.dt.day
     ]).transform('max').values)
     
-    eod_ind = np.where(ret_df.index.isin(eod_times), True, False) if self._sell_eod else []
+    eod_ind = np.where(df.index.isin(eod_times), True, False) if self._sell_eod else []
     
-    for i in range(len(ret_df)):
+    for i in range(len(df)):
       cur_time = ts_vals.iat[i]
       buy_start = cur_time.replace(hour=int(self._buy_window[0].split(':')[0]), minute=int(self._buy_window[0].split(':')[1])) if self._buy_window[0] else cur_time.replace(hour=0, minute=0)
       buy_end = cur_time.replace(hour=int(self._buy_window[1].split(':')[0]), minute=int(self._buy_window[1].split(':')[1])) if self._buy_window[0] else cur_time.replace(hour=23, minute=59)
@@ -510,19 +480,19 @@ class BuySell(Indicator):
       
       if src_val.iat[i] > 0 and not in_pos and in_buy_window:
         in_pos = True
-        ret_df[self._tgt_col].iat[i] = 1
+        df[self._tgt_col].iat[i] = 1
       elif in_pos:
-        stopped_out = ret_df[self._close].iat[i] <= cur_stop_price
+        stopped_out = df[self._close].iat[i] <= cur_stop_price
         short_sig = src_val.iat[i] < 0
         is_eod = self._sell_eod and eod_ind[i]
         
         if stopped_out or short_sig or is_eod:
           in_pos = False
           cur_stop_price = -1.0
-          ret_df[self._tgt_col].iat[i] = -1
+          df[self._tgt_col].iat[i] = -1
         else:
-          cur_stop_price = max(cur_stop_price, ret_df[self._high].iat[i-1] * (1.0 - self._trail_frac)) if self._trail_frac else -1.0
-          ret_df[self._tgt_col].iat[i] = 0
+          cur_stop_price = max(cur_stop_price, df[self._high].iat[i-1] * (1.0 - self._trail_frac)) if self._trail_frac else -1.0
+          df[self._tgt_col].iat[i] = 0
     
     return ret_df
   

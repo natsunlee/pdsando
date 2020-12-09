@@ -1,6 +1,5 @@
 import hashlib
-import pandas as pd
-from pdpipe import PdPipelineStage
+from pdsando.core.wrappers import PipelineStage
 import pdsando.etl.pipeline.cdc.templates as templates
 from pdsando.etl.pipeline.cdc.constants import (
   CDC_CHANGED_INTERMEDIATE,
@@ -32,7 +31,7 @@ def code_to_name(code):
   if code == CDC_UNCHANGED: return 'unchanged'
   return None
 
-class CDC(PdPipelineStage):
+class CDC(PipelineStage):
   
   def __init__(self, old_df, key_columns=None, value_columns=None, scd_type=2, full_snapshot=False, nulls_are_blanks=False, debug=False, **kwargs):
     self._old_df = old_df

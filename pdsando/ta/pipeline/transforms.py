@@ -1,7 +1,7 @@
 import pandas as pd
-from pdpipe import PdPipelineStage
+from pdsando.core.wrappers import PipelineStage
 
-class Transform(PdPipelineStage):
+class Transform(PipelineStage):
   
   def __init__(self, **kwargs):
     super().__init__(exmsg='Transform failure', desc='Transform')
@@ -29,11 +29,10 @@ class Shift(Transform):
     super().__init__()
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
     if verbose:
       print('Adding Shifted col "{}"'.format(self._tgt_col))
-    ret_df[self._tgt_col] = ret_df[self._src_col].shift(self._shift)
-    return ret_df
+    df[self._tgt_col] = df[self._src_col].shift(self._shift)
+    return df
 
 class ToDateTime(Transform):
   
@@ -46,20 +45,18 @@ class ToDateTime(Transform):
     super().__init__()
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Converting epoch timestamp to human readable timestamp for "{}"'.format(self._src_col))
     
-    ret_df[self._tgt_col] = pd.to_datetime(ret_df[self._src_col], utc=True, unit=self._unit)
+    df[self._tgt_col] = pd.to_datetime(df[self._src_col], utc=True, unit=self._unit)
     
     if self._to_tz != 'utc':
-      ret_df[self._tgt_col] = ret_df[self._tgt_col].dt.tz_convert(self._to_tz)
+      df[self._tgt_col] = df[self._tgt_col].dt.tz_convert(self._to_tz)
     
     if self._strip_tz:
-      ret_df[self._tgt_col] = pd.DatetimeIndex(ret_df[self._tgt_col]).tz_localize(None)
+      df[self._tgt_col] = pd.DatetimeIndex(df[self._tgt_col]).tz_localize(None)
     
-    return ret_df
+    return df
 
 class ResetIndex(Transform):
   
@@ -68,12 +65,10 @@ class ResetIndex(Transform):
     super().__init__()
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Resetting DataFrame index')
     
-    return ret_df.reset_index(drop=self._drop)
+    return df.reset_index(drop=self._drop)
 
 class MinVal(Transform):
   
@@ -83,14 +78,12 @@ class MinVal(Transform):
     super().__init__()
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Determining minimum value contained in columns: "{}"'.format(self._col_list))
     
-    ret_df[self._tgt_col] = ret_df[self._col_list].min(axis=1)
+    df[self._tgt_col] = df[self._col_list].min(axis=1)
     
-    return ret_df
+    return df
 
 class MaxVal(Transform):
   
@@ -100,14 +93,12 @@ class MaxVal(Transform):
     super().__init__()
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Determining minimum value contained in columns: "{}"'.format(self._col_list))
     
-    ret_df[self._tgt_col] = ret_df[self._col_list].max(axis=1)
+    df[self._tgt_col] = df[self._col_list].max(axis=1)
     
-    return ret_df
+    return df
 
 class FillMissingTimeFrames(Transform):
   
@@ -158,12 +149,10 @@ class SetIndex(Transform):
     super().__init__()
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Setting new index to: "{}"'.format(self._new_index))
     
-    return ret_df.set_index(self._new_index)
+    return df.set_index(self._new_index)
 
 class Slice(Transform):
   
@@ -178,17 +167,15 @@ class Slice(Transform):
     return True
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Returning slice from {} to {}"'.format(self._start, self._end))
     
     if self._start and self._end:
-      return ret_df[self._start: self._end]
+      return df[self._start: self._end]
     elif self._start:
-      return ret_df[self._start:]
+      return df[self._start:]
     else:
-      return ret_df[:self._end]
+      return df[:self._end]
 
 class IntradayGroups(Transform):
   
@@ -202,15 +189,13 @@ class IntradayGroups(Transform):
     super().__init__()
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Grouping every {} records within each day"'.format(self._group_size))
     
-    ret_df['_date_group'] = ret_df[self._timestamp].dt.date
-    g = ret_df.groupby(ret_df['_date_group']).cumcount() // self._group_size
+    df['_date_group'] = df[self._timestamp].dt.date
+    g = df.groupby(df['_date_group']).cumcount() // self._group_size
     
-    return ret_df.groupby(['_date_group', g]).agg({
+    return df.groupby(['_date_group', g]).agg({
       self._close: 'last',
       self._high: 'max',
       self._low: 'min',
@@ -226,14 +211,13 @@ class Sort(Transform):
     super().__init__()
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
     if verbose:
       print('Sorting by value column {}'.format(self._sort_col or 'index'))
     
     if self._sort_col:
-      return ret_df.sort_values(by=self._sort_col, inplace=True)
+      return df.sort_values(by=self._sort_col, inplace=True)
     else:
-      return ret_df.sort_index(inplace=True)
+      return df.sort_index(inplace=True)
 
 class Invert(Transform):
   
@@ -243,10 +227,8 @@ class Invert(Transform):
     super().__init__()
   
   def _transform(self, df, verbose):
-    ret_df = df.copy()
-    
     if verbose:
       print('Muliplying column {} by -1'.format(self._src_col))
     
-    ret_df[self._tgt_col] = ret_df[self._src_col] * -1
-    return ret_df
+    df[self._tgt_col] = df[self._src_col] * -1
+    return df

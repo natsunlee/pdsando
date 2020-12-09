@@ -12,7 +12,7 @@ setup(
   author_email = 'lee.nathan.sh@gmail.com',
   install_requires = ['mplfinance', 'pdpipe', 'pandas', 'numpy', 'jsonschema'],
   packages = [
-    'pdsando',
+    'pdsando', 'pdsando.core',
     'pdsando.etl.schema',
     'pdsando.etl', 'pdsando.etl.pipeline', 'pdsando.etl.pipeline.cdc',
     'pdsando.ta.datafeeds', 'pdsando.ta.pipeline', 'pdsando.ta.visualizations'
