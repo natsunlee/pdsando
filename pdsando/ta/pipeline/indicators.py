@@ -494,7 +494,7 @@ class BuySell(Indicator):
           cur_stop_price = max(cur_stop_price, df[self._high].iat[i-1] * (1.0 - self._trail_frac)) if self._trail_frac else -1.0
           df[self._tgt_col].iat[i] = 0
     
-    return ret_df
+    return df
   
   def _indicator(self, df, panel=0):
     temp = self._get_or_apply(df).copy()
