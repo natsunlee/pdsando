@@ -1,17 +1,17 @@
 import hashlib
 from pdsando.core.wrappers import PipelineStage
-import pdsando.etl.pipeline.cdc.templates as templates
-from pdsando.etl.pipeline.cdc.constants import (
-    CDC_CHANGED_INTERMEDIATE,
-    CDC_CHANGED_NEW,
-    CDC_CHANGED_OLD,
-    CDC_DELETED,
-    CDC_NEW,
-    CDC_UNCHANGED,
+import pdsando.etl.pandas.pipeline.scd.templates as templates
+from pdsando.etl.constants import (
+    SCD_CHANGED_INTERMEDIATE,
+    SCD_CHANGED_NEW,
+    SCD_CHANGED_OLD,
+    SCD_DELETED,
+    SCD_NEW,
+    SCD_UNCHANGED,
     ROW_TYPE_EXISTING,
     ROW_TYPE_INCOMING,
     NULL_VAL_REP,
-    COL_CDC_CODE,
+    COL_SCD_CODE,
     COL_KEY,
     COL_VALUE,
     COL_ROW_TYPE,
@@ -25,22 +25,22 @@ def hash_string(value):
 
 
 def code_to_name(code):
-    if code == CDC_CHANGED_INTERMEDIATE:
+    if code == SCD_CHANGED_INTERMEDIATE:
         return "changed-intermediate"
-    if code == CDC_CHANGED_NEW:
+    if code == SCD_CHANGED_NEW:
         return "changed-new"
-    if code == CDC_CHANGED_OLD:
+    if code == SCD_CHANGED_OLD:
         return "changed-old"
-    if code == CDC_DELETED:
+    if code == SCD_DELETED:
         return "deleted"
-    if code == CDC_NEW:
+    if code == SCD_NEW:
         return "new"
-    if code == CDC_UNCHANGED:
+    if code == SCD_UNCHANGED:
         return "unchanged"
     return None
 
 
-class CDC(PipelineStage):
+class SCD(PipelineStage):
     def __init__(
         self,
         old_df,
@@ -63,7 +63,7 @@ class CDC(PipelineStage):
         self._full_snapshot = full_snapshot
         self._nulls_are_blanks = nulls_are_blanks
         self._debug = debug
-        super().__init__(exmsg="CDC failure", desc="ETL Stage")
+        super().__init__(exmsg="SCD failure", desc="ETL Stage")
 
     def _prec(self, df):
         intersect = set(self._key_columns).intersection(set(self._value_columns))
@@ -82,7 +82,7 @@ class CDC(PipelineStage):
 
     def _transform(self, df, verbose):
         if verbose:
-            print("Executing CDC processing")
+            print("Executing SCD processing")
             print("  SCD Type {}".format(self._scd_type))
             print("  Incoming Data is Full Snapshot: {}".format(self._full_snapshot))
             print("  Convert Nulls to Blanks: {}".format(self._nulls_are_blanks))
@@ -92,7 +92,7 @@ class CDC(PipelineStage):
         ret_df = df.copy()
         old_copy = self._old_df.copy()
 
-        cdc_func = getattr(templates, "type_{}".format(self._scd_type))
+        scd_func = getattr(templates, "type_{}".format(self._scd_type))
         null_val = "" if self._nulls_are_blanks else NULL_VAL_REP
 
         if self._key_columns:
@@ -118,12 +118,12 @@ class CDC(PipelineStage):
         grouped = union_df.groupby(COL_KEY)[COL_VALUE]
         union_df[COL_LAST_VALUE] = grouped.shift(1)
         union_df[COL_NEXT_VALUE] = grouped.shift(-1)
-        union_df[COL_CDC_CODE] = union_df.apply(
-            lambda row: cdc_func(row, self._full_snapshot), axis=1
+        union_df[COL_SCD_CODE] = union_df.apply(
+            lambda row: scd_func(row, self._full_snapshot), axis=1
         )
 
         if self._debug:
-            union_df[COL_CDC_CODE] = union_df[COL_CDC_CODE].apply(code_to_name)
+            union_df[COL_SCD_CODE] = union_df[COL_SCD_CODE].apply(code_to_name)
         else:
             union_df.drop(
                 [COL_KEY, COL_VALUE, COL_ROW_TYPE, COL_LAST_VALUE, COL_NEXT_VALUE],
@@ -131,4 +131,4 @@ class CDC(PipelineStage):
                 inplace=True,
             )
 
-        return union_df[union_df._cdc_code_.notna()]
+        return union_df[union_df._scd_code_.notna()]
