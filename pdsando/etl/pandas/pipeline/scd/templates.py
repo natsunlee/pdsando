@@ -1,15 +1,15 @@
 import pandas as pd
 import numpy as np
-from pdsando.etl.pipeline.cdc.constants import (
-    CDC_CHANGED_INTERMEDIATE,
-    CDC_CHANGED_NEW,
-    CDC_CHANGED_OLD,
-    CDC_DELETED,
-    CDC_NEW,
-    CDC_UNCHANGED,
+from pdsando.etl.constants import (
+    SCD_CHANGED_INTERMEDIATE,
+    SCD_CHANGED_NEW,
+    SCD_CHANGED_OLD,
+    SCD_DELETED,
+    SCD_NEW,
+    SCD_UNCHANGED,
     ROW_TYPE_EXISTING,
     ROW_TYPE_INCOMING,
-    COL_CDC_CODE,
+    COL_SCD_CODE,
     COL_KEY,
     COL_VALUE,
     COL_ROW_TYPE,
@@ -23,14 +23,14 @@ from pdsando.etl.pipeline.cdc.constants import (
 def type_0(row, full_snapshot=False):
     if full_snapshot:
         if (row[COL_ROW_TYPE] == ROW_TYPE_INCOMING) and pd.isnull(row[COL_LAST_VALUE]):
-            return CDC_NEW
+            return SCD_NEW
         if (row[COL_ROW_TYPE] == ROW_TYPE_EXISTING) and pd.notnull(row[COL_NEXT_VALUE]):
-            return CDC_UNCHANGED
+            return SCD_UNCHANGED
     else:
         if (row[COL_ROW_TYPE] == ROW_TYPE_INCOMING) and pd.isnull(row[COL_LAST_VALUE]):
-            return CDC_NEW
+            return SCD_NEW
         if row[COL_ROW_TYPE] == ROW_TYPE_EXISTING:
-            return CDC_UNCHANGED
+            return SCD_UNCHANGED
     return None
 
 
@@ -40,26 +40,26 @@ def type_0(row, full_snapshot=False):
 def type_1(row, full_snapshot=False):
     if full_snapshot:
         if (row[COL_ROW_TYPE] == ROW_TYPE_INCOMING) and pd.isnull(row[COL_LAST_VALUE]):
-            return CDC_NEW
+            return SCD_NEW
         if (
             (row[COL_ROW_TYPE] == ROW_TYPE_INCOMING)
             and pd.notnull(row[COL_LAST_VALUE])
             and (row[COL_VALUE] != row[COL_LAST_VALUE])
         ):
-            return CDC_CHANGED_NEW
+            return SCD_CHANGED_NEW
         if (
             (row[COL_ROW_TYPE] == ROW_TYPE_INCOMING)
             and pd.notnull(row[COL_LAST_VALUE])
             and (row[COL_VALUE] == row[COL_LAST_VALUE])
         ):
-            return CDC_UNCHANGED
+            return SCD_UNCHANGED
     else:
         if (row[COL_ROW_TYPE] == ROW_TYPE_INCOMING) and pd.isnull(row[COL_LAST_VALUE]):
-            return CDC_NEW
+            return SCD_NEW
         if (row[COL_ROW_TYPE] == ROW_TYPE_INCOMING) and pd.notnull(row[COL_LAST_VALUE]):
-            return CDC_CHANGED_NEW
+            return SCD_CHANGED_NEW
         if (row[COL_ROW_TYPE] == ROW_TYPE_EXISTING) and pd.isnull(row[COL_NEXT_VALUE]):
-            return CDC_UNCHANGED
+            return SCD_UNCHANGED
     return None
 
 
@@ -69,48 +69,48 @@ def type_1(row, full_snapshot=False):
 def type_2(row, full_snapshot=False):
     if full_snapshot:
         if (row[COL_ROW_TYPE] == ROW_TYPE_INCOMING) and pd.isnull(row[COL_LAST_VALUE]):
-            return CDC_NEW
+            return SCD_NEW
         if (row[COL_ROW_TYPE] == ROW_TYPE_EXISTING) and pd.isnull(row[COL_NEXT_VALUE]):
-            return CDC_DELETED
+            return SCD_DELETED
         if (
             (row[COL_ROW_TYPE] == ROW_TYPE_EXISTING)
             and pd.notnull(row[COL_NEXT_VALUE])
             and (row[COL_VALUE] != row[COL_NEXT_VALUE])
         ):
-            return CDC_CHANGED_OLD
+            return SCD_CHANGED_OLD
         if (
             (row[COL_ROW_TYPE] == ROW_TYPE_INCOMING)
             and pd.notnull(row[COL_LAST_VALUE])
             and (row[COL_VALUE] != row[COL_LAST_VALUE])
         ):
-            return CDC_CHANGED_NEW
+            return SCD_CHANGED_NEW
         if (
             (row[COL_ROW_TYPE] == ROW_TYPE_EXISTING)
             and pd.notnull(row[COL_NEXT_VALUE])
             and (row[COL_VALUE] == row[COL_NEXT_VALUE])
         ):
-            return CDC_UNCHANGED
+            return SCD_UNCHANGED
     else:
         if (row[COL_ROW_TYPE] == ROW_TYPE_INCOMING) and pd.isnull(row[COL_LAST_VALUE]):
-            return CDC_NEW
+            return SCD_NEW
         if (row[COL_ROW_TYPE] == ROW_TYPE_EXISTING) and pd.isnull(row[COL_NEXT_VALUE]):
-            return CDC_UNCHANGED
+            return SCD_UNCHANGED
         if (
             (row[COL_ROW_TYPE] == ROW_TYPE_EXISTING)
             and pd.notnull(row[COL_NEXT_VALUE])
             and (row[COL_VALUE] != row[COL_NEXT_VALUE])
         ):
-            return CDC_CHANGED_OLD
+            return SCD_CHANGED_OLD
         if (
             (row[COL_ROW_TYPE] == ROW_TYPE_INCOMING)
             and pd.notnull(row[COL_LAST_VALUE])
             and (row[COL_VALUE] != row[COL_LAST_VALUE])
         ):
-            return CDC_CHANGED_NEW
+            return SCD_CHANGED_NEW
         if (
             (row[COL_ROW_TYPE] == ROW_TYPE_EXISTING)
             and pd.notnull(row[COL_NEXT_VALUE])
             and (row[COL_VALUE] == row[COL_NEXT_VALUE])
         ):
-            return CDC_UNCHANGED
+            return SCD_UNCHANGED
     return None

@@ -1,1 +1,1 @@
-from pdsando.etl.pipeline.cdc.cdc import CDC
+from pdsando.etl.pandas.pipeline.scd.scd import SCD

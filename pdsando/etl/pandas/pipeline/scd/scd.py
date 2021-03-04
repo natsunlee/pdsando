@@ -89,7 +89,7 @@ class SCD(PipelineStage):
             print("  Key Columns: {}".format(self._key_columns))
             print("  Value Columns: {}".format(self._value_columns))
 
-        ret_df = df.copy()
+        ret_df = df
         old_copy = self._old_df.copy()
 
         scd_func = getattr(templates, "type_{}".format(self._scd_type))

@@ -131,21 +131,16 @@ class SCD:
             )
         )
 
-        processed_df = scd_func(union_df)
+        processed_df = scd_func(union_df, self._full_snapshot).filter(
+            psf.col(COL_SCD_CODE).isNotNull()
+        )
 
-        return processed_df.drop(
-            COL_KEY, COL_VALUE, COL_ROW_TYPE, COL_LAST_VALUE, COL_NEXT_VALUE
-        ).filter(psf.col(COL_SCD_CODE).isNotNull())
+        if not self._debug:
+            processed_df = processed_df.drop(
+                COL_KEY, COL_VALUE, COL_ROW_TYPE, COL_LAST_VALUE, COL_NEXT_VALUE
+            )
 
-        # if self._debug:
-        #    union_df[COL_SCD_CODE] = union_df[COL_SCD_CODE].apply(code_to_name)
-        # else:
-        #    union_df.drop(
-        #        [COL_KEY, COL_VALUE, COL_ROW_TYPE, COL_LAST_VALUE, COL_NEXT_VALUE],
-        #        axis=1,
-        #        inplace=True,
-        #    )
-        # return union_df[union_df._scd_code_.notna()]
+        return processed_df
 
 
 # Type 0: Once set, values are immutable.
