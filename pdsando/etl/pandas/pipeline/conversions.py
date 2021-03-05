@@ -51,6 +51,8 @@ class FillNullsByType(PipelineStage):
                 fill_val = False
             elif df[c].dtypes.type == np.datetime64:
                 fill_val = datetime(year=1900, month=1, day=1)
+            elif df[c].dtypes.type == np.object_:
+                fill_val = ""
             else:
                 # Skip unknown types
                 continue
