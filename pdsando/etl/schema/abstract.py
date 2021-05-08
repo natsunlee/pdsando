@@ -3,7 +3,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 
 
-class Schema:
+class Schema(ABC):
     def __init__(self, schema=None):
         if isinstance(schema, str) or isinstance(schema, Path):
             with open(schema, "r") as f:
